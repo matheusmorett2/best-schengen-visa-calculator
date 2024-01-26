@@ -18,7 +18,7 @@ const App: React.FC = () => {
         </div>
       </div>
       <div className="fixed bottom-4 right-4">
-        <p className="text-sm mb-2">
+        <p className="text-sm mb-2 text-black dark:text-gray-300">
           <a
             href="https://matheusmorett.com/"
             target="_blank"

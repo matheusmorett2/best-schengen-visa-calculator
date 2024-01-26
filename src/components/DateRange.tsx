@@ -157,7 +157,7 @@ const DateRangeInput: React.FC = () => {
               }`}
             />
           </div>
-          <span className="ml-2 hidden md:inline">
+          <span className="ml-2 hidden md:inline text-black dark:text-gray-300">
             {calculateDays(range.entry, range.exit)}
           </span>
         </div>
@@ -171,7 +171,7 @@ const DateRangeInput: React.FC = () => {
       <div className="my-4">
         <label
           htmlFor="rejoinDate"
-          className="block text-sm font-medium text-gray-700"
+          className="block text-sm font-medium text-gray-700 dark:text-gray-300"
         >
           When are you planning to re-join Schengen?
         </label>
@@ -190,17 +190,19 @@ const DateRangeInput: React.FC = () => {
       </div>
       <button
         onClick={handleCalculation}
-        className="mt-4 bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
+        className="mt-4 bg-green-500 hover:bg-green-700 text-gray-100 font-bold py-2 px-4 rounded"
       >
         Calculate
       </button>
       {calculationResult.message && (
         <>
           <div className="mt-4 p-4 border rounded">
-            {calculationResult.message}
+            <span className="text-black dark:text-gray-300">
+              {calculationResult.message}
+            </span>
           </div>
           <div className="overflow-x-auto justify-start">
-            <div className="min-w-screen pb-10 bg-gray-100 flex justify-center bg-gray-100 font-sans overflow-hidden">
+            <div className="min-w-screen pb-10 flex justify-center bg-gray-100 font-sans overflow-hidden">
               <div className="w-full lg:w-5/6">
                 <h1 className="text-5sm font-bold inline-block my-3 p-1">
                   This is how many days you can stay if you join on this day
