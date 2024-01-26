@@ -1,5 +1,6 @@
 import {
   addDays,
+  differenceInCalendarDays,
   eachDayOfInterval,
   format,
   isBefore,
@@ -49,49 +50,42 @@ export const mergeAndSortDates = (dateRanges: DateRange[]): DateRange[] => {
   return mergedRanges;
 };
 
-export const calculateSchengenStay = (
-  dateRanges: DateRange[],
-  rejoinDate: string
-) => {
-  if (!dateRanges.length) return "";
+export const calculateSchengenStay = (dateRanges: DateRange[], rejoinDateStr: string) => {
+  const rejoinDate = new Date(rejoinDateStr);
 
-  const mergedRanges = mergeAndSortDates(dateRanges);
+  // Function to calculate the number of days spent in Schengen in the last 180 days from a given date
+  const daysSpentInLast180Days = (date: Date) => {
+    let daysSpent = 0;
+    for (let i = 0; i < dateRanges.length; i++) {
+      const { entry, exit } = dateRanges[i];
+      const entryDate = new Date(entry);
+      const exitDate = new Date(exit);
+      const startOf180DayPeriod = subDays(date, 179);
 
-  // Set the end of the 180-day period as either today or the rejoin date
-  const periodEnd = isToday(new Date(rejoinDate))
-    ? new Date()
-    : new Date(rejoinDate);
-  const periodStart = subDays(periodEnd, 179); // Start of the 180-day period
+      // Check if the date range overlaps with the 180-day period ending on 'date'
+      if (isWithinInterval(entryDate, { start: startOf180DayPeriod, end: date }) ||
+          isWithinInterval(exitDate, { start: startOf180DayPeriod, end: date }) ||
+          (entryDate < startOf180DayPeriod && exitDate > date)) {
 
-  let totalDaysStayed = 0;
-
-  // Calculate total stay within the 180-day period
-  mergedRanges.forEach((range) => {
-    const entry = new Date(range.entry);
-    const exit = new Date(range.exit);
-
-    if (
-      isWithinInterval(entry, { start: periodStart, end: periodEnd }) ||
-      isWithinInterval(exit, { start: periodStart, end: periodEnd })
-    ) {
-      const period = eachDayOfInterval({
-        start: max([periodStart, entry]),
-        end: min([periodEnd, exit]),
-      });
-      totalDaysStayed += period.length;
+        const overlapStart = entryDate < startOf180DayPeriod ? startOf180DayPeriod : entryDate;
+        const overlapEnd = exitDate > date ? date : exitDate;
+        daysSpent += differenceInCalendarDays(overlapEnd, overlapStart) + 1;
+      }
     }
-  });
+    return daysSpent;
+  };
 
-  const daysLeft = 90 - totalDaysStayed;
-  const lastExitDate = addDays(new Date(rejoinDate), daysLeft);
+  // Calculate days left to stay
+  let daysLeft = 90 - daysSpentInLast180Days(rejoinDate);
+
+  // The last permissible exit date
+  let lastExitDate = addDays(rejoinDate, daysLeft);
 
   if (daysLeft >= 0) {
-    return `you can still stay ${daysLeft} days in the Schengen area, until ${lastExitDate.toDateString()}.`;
+    return `You can still stay ${daysLeft} days in the Schengen area, until ${format(lastExitDate, 'PPP')}.`;
   } else {
-    return `you are exceeding the limit by ${-daysLeft} days in the Schengen area, you should have left by ${subDays(
-      lastExitDate,
-      -daysLeft
-    ).toDateString()}.`;
+    const overstay = -daysLeft;
+    return `You are exceeding the limit by ${overstay} days in the Schengen area. Please adjust your travel dates.`;
   }
 };
 

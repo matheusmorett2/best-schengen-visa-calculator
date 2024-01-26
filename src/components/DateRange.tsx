@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { useLocalStorage } from "react-use";
 import { format } from "date-fns";
 import { schengenStatusMessage } from "../utils/calculator";
@@ -21,6 +21,13 @@ const DateRangeInput: React.FC = () => {
     "rejoinDate",
     format(new Date(), "yyyy-MM-dd")
   );
+  const [calculationResult, setCalculationResult] = useState("");
+
+  // Function to handle the calculation
+  const handleCalculation = () => {
+    const result = schengenStatusMessage(rejoinDate!, dateRanges || []);
+    setCalculationResult(result);
+  };
 
   const addDateRange = () => {
     setDateRanges([...(dateRanges || []), { entry: "", exit: "" }]);
@@ -42,7 +49,6 @@ const DateRangeInput: React.FC = () => {
     const newDate = new Date(value);
     const lastExitDate =
       index > 0 ? new Date(dateRanges[index - 1].exit) : null;
-
     if (field === "entry" && lastExitDate && newDate < lastExitDate) {
       newErrors[`range-${index}-entry`] =
         "Entry date cannot be before the last exit date.";
@@ -55,8 +61,12 @@ const DateRangeInput: React.FC = () => {
     } else {
       delete newErrors[`range-${index}-${field}`];
     }
-
     setErrors(newErrors);
+  };
+
+  const handleBlur = (index: number, field: "entry" | "exit") => {
+    const value = dateRanges[index][field];
+    validateDateRange(index, field, value);
   };
 
   const updateDateRange = (
@@ -64,7 +74,6 @@ const DateRangeInput: React.FC = () => {
     field: "entry" | "exit",
     value: string
   ) => {
-    validateDateRange(index, field, value);
     const newDateRanges = [...(dateRanges || [])];
     newDateRanges[index][field] = value;
     setDateRanges(newDateRanges);
@@ -116,32 +125,27 @@ const DateRangeInput: React.FC = () => {
               type="date"
               value={range.entry}
               onChange={(e) => updateDateRange(index, "entry", e.target.value)}
+              onBlur={() => handleBlur(index, "entry")}
               className={`border p-2 rounded ${
-                errors?.[`range-${index}-entry`] ? "border-red-500" : ""
+                errors?.[`range-${index}-entry`]
+                  ? "border-red-500"
+                  : "border-gray-300"
               }`}
             />
-            {errors?.[`range-${index}-entry`] && (
-              <p className="text-red-500 text-xs italic">
-                {errors[`range-${index}-entry`]}
-              </p>
-            )}
           </div>
           <div>
             <input
               type="date"
               value={range.exit}
               onChange={(e) => updateDateRange(index, "exit", e.target.value)}
+              onBlur={() => handleBlur(index, "exit")}
               className={`border p-2 rounded ${
-                errors?.[`range-${index}-exit`] ? "border-red-500" : ""
+                errors?.[`range-${index}-exit`]
+                  ? "border-red-500"
+                  : "border-gray-300"
               }`}
             />
-            {errors?.[`range-${index}-exit`] && (
-              <p className="text-red-500 text-xs italic">
-                {errors[`range-${index}-exit`]}
-              </p>
-            )}
           </div>
-
           <span className="ml-2">{calculateDays(range.entry, range.exit)}</span>
         </div>
       ))}
@@ -171,8 +175,16 @@ const DateRangeInput: React.FC = () => {
           <p className="text-red-500 text-xs italic">{errors.rejoinDate}</p>
         )}
       </div>
+      <button
+        onClick={handleCalculation}
+        className="mt-4 bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
+      >
+        Calculate
+      </button>
       <div className="mt-4 p-4 border rounded">
-        {schengenStatusMessage(rejoinDate!, dateRanges || [])}
+        {calculationResult && (
+          <div className="mt-4 p-4 border rounded">{calculationResult}</div>
+        )}
       </div>
     </div>
   );
