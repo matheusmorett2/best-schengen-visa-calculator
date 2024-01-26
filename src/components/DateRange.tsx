@@ -192,8 +192,8 @@ const DateRangeInput: React.FC = () => {
           <div className="mt-4 p-4 border rounded">
             {calculationResult.message}
           </div>
-          <div className="overflow-x-auto">
-            <div className="min-w-screen min-h-screen bg-gray-100 flex items-center justify-center bg-gray-100 font-sans overflow-hidden">
+          <div className="overflow-x-auto justify-start">
+            <div className="min-w-screen min-h-screen bg-gray-100 flex justify-center bg-gray-100 font-sans overflow-hidden">
               <div className="w-full lg:w-5/6">
                 <h1 className="text-5sm font-bold inline-block my-3 p-1">
                   This is how many days you can stay if you join on this day

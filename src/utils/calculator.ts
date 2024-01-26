@@ -92,10 +92,15 @@ export const calculateSchengenStay = (
   }
 };
 
+type FutureStay = {
+  date: string;
+  daysLeft: number;
+};
+
 export const calculateFutureStay = (
   dateRanges: DateRange[],
   rejoinDateStr: string
-) => {
+): FutureStay[] => {
   const rejoinDate = new Date(rejoinDateStr);
   let futureAvailability = [];
 
@@ -141,10 +146,7 @@ const formatDate = (date: Date) => format(date, "PPP");
 
 export type SchengenStatus = {
   message: string;
-  futureStay: {
-    date: string;
-    daysLeft: number;
-  }[];
+  futureStay: FutureStay[];
 };
 
 export const schengenStatus = (
@@ -190,7 +192,12 @@ export const schengenStatus = (
       message: `If you re-join the Schengen area on ${formatDate(
         rejoinDateObj
       )}, you can initially stay for ${amountOfDays} days.`,
-      futureStay: futureStay,
+      futureStay: futureStay.reduce<FutureStay[]>((acc, day) => {
+        if (!acc.some((item) => item.daysLeft === day.daysLeft)) {
+          acc.push(day);
+        }
+        return acc;
+      }, []),
     };
   } else {
     return {
