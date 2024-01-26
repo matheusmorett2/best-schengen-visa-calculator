@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useLocalStorage } from "react-use";
 import { format } from "date-fns";
-import { schengenStatusMessage } from "../utils/calculator";
+import { SchengenStatus, schengenStatus } from "../utils/calculator";
 
 export type DateRange = {
   entry: string;
@@ -21,11 +21,14 @@ const DateRangeInput: React.FC = () => {
     "rejoinDate",
     format(new Date(), "yyyy-MM-dd")
   );
-  const [calculationResult, setCalculationResult] = useState("");
+  const [calculationResult, setCalculationResult] = useState<SchengenStatus>({
+    message: "",
+    futureStay: [],
+  });
 
   // Function to handle the calculation
   const handleCalculation = () => {
-    const result = schengenStatusMessage(rejoinDate!, dateRanges || []);
+    const result = schengenStatus(rejoinDate!, dateRanges || []);
     setCalculationResult(result);
   };
 
@@ -116,7 +119,10 @@ const DateRangeInput: React.FC = () => {
         <div key={index} className="flex items-center space-x-4 mb-4">
           <button
             onClick={() => removeDateRange(index)}
-            className="bg-red-500 text-white p-2 rounded"
+            className={`bg-red-500 text-white p-2 rounded ${
+              index === 0 ? "opacity-50 cursor-not-allowed" : ""
+            }`}
+            disabled={index === 0}
           >
             Delete
           </button>
@@ -181,11 +187,51 @@ const DateRangeInput: React.FC = () => {
       >
         Calculate
       </button>
-      <div className="mt-4 p-4 border rounded">
-        {calculationResult && (
-          <div className="mt-4 p-4 border rounded">{calculationResult}</div>
-        )}
-      </div>
+      {calculationResult.message && (
+        <>
+          <div className="mt-4 p-4 border rounded">
+            {calculationResult.message}
+          </div>
+          <div className="overflow-x-auto">
+            <div className="min-w-screen min-h-screen bg-gray-100 flex items-center justify-center bg-gray-100 font-sans overflow-hidden">
+              <div className="w-full lg:w-5/6">
+                <h1 className="text-5sm font-bold inline-block my-3 p-1">
+                  This is how many days you can stay if you join on this day
+                </h1>
+                <div className="bg-white shadow-md rounded my-3">
+                  <table className="min-w-max w-full table-auto">
+                    <thead>
+                      <tr className="bg-gray-200 text-gray-600 uppercase text-sm leading-normal">
+                        <th className="py-3 px-6 text-left">Date</th>
+                        <th className="py-3 px-6 text-left">Days Left</th>
+                      </tr>
+                    </thead>
+                    <tbody className="text-gray-600 text-sm font-light">
+                      {calculationResult.futureStay.map((day, index) => (
+                        <tr
+                          className="border-b border-gray-200 hover:bg-gray-100"
+                          key={index}
+                        >
+                          <td className="py-3 px-6 text-left whitespace-nowrap">
+                            <div className="flex items-center">
+                              <span className="font-medium">{day.date}</span>
+                            </div>
+                          </td>
+                          <td className="py-3 px-6 text-left">
+                            <div className="flex items-center">
+                              <span>{day.daysLeft}</span>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 };

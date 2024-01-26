@@ -7,7 +7,7 @@ const App: React.FC = () => {
     <div>
       <Header />
       <div className="flex justify-center min-h-screen">
-        <div className="w-full max-w-lg pt-4">
+        <div className="w-full max-w-xl pt-4">
           <DateRangeInput />
         </div>
       </div>

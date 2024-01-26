@@ -1,11 +1,9 @@
 import {
   addDays,
   differenceInCalendarDays,
-  eachDayOfInterval,
   format,
   isBefore,
   isEqual,
-  isToday,
   isValid,
   isWithinInterval,
   max,
@@ -50,63 +48,156 @@ export const mergeAndSortDates = (dateRanges: DateRange[]): DateRange[] => {
   return mergedRanges;
 };
 
-export const calculateSchengenStay = (dateRanges: DateRange[], rejoinDateStr: string) => {
-  const rejoinDate = new Date(rejoinDateStr);
+export const calculateDaysSpentInLast180Days = (
+  dateRanges: DateRange[],
+  date: Date
+) => {
+  let daysSpent = 0;
+  for (let i = 0; i < dateRanges.length; i++) {
+    const { entry, exit } = dateRanges[i];
+    const entryDate = new Date(entry);
+    const exitDate = new Date(exit);
+    const startOf180DayPeriod = subDays(date, 179);
 
-  // Function to calculate the number of days spent in Schengen in the last 180 days from a given date
-  const daysSpentInLast180Days = (date: Date) => {
-    let daysSpent = 0;
-    for (let i = 0; i < dateRanges.length; i++) {
-      const { entry, exit } = dateRanges[i];
-      const entryDate = new Date(entry);
-      const exitDate = new Date(exit);
-      const startOf180DayPeriod = subDays(date, 179);
-
-      // Check if the date range overlaps with the 180-day period ending on 'date'
-      if (isWithinInterval(entryDate, { start: startOf180DayPeriod, end: date }) ||
-          isWithinInterval(exitDate, { start: startOf180DayPeriod, end: date }) ||
-          (entryDate < startOf180DayPeriod && exitDate > date)) {
-
-        const overlapStart = entryDate < startOf180DayPeriod ? startOf180DayPeriod : entryDate;
-        const overlapEnd = exitDate > date ? date : exitDate;
-        daysSpent += differenceInCalendarDays(overlapEnd, overlapStart) + 1;
-      }
+    if (
+      isWithinInterval(entryDate, { start: startOf180DayPeriod, end: date }) ||
+      isWithinInterval(exitDate, { start: startOf180DayPeriod, end: date }) ||
+      (entryDate < startOf180DayPeriod && exitDate > date)
+    ) {
+      const overlapStart =
+        entryDate < startOf180DayPeriod ? startOf180DayPeriod : entryDate;
+      const overlapEnd = exitDate > date ? date : exitDate;
+      daysSpent += differenceInCalendarDays(overlapEnd, overlapStart) + 1;
     }
-    return daysSpent;
-  };
+  }
+  return daysSpent;
+};
 
-  // Calculate days left to stay
-  let daysLeft = 90 - daysSpentInLast180Days(rejoinDate);
-
-  // The last permissible exit date
-  let lastExitDate = addDays(rejoinDate, daysLeft);
+export const calculateSchengenStay = (
+  dateRanges: DateRange[],
+  rejoinDateStr: string
+) => {
+  const rejoinDate = new Date(rejoinDateStr);
+  const daysLeft = 90 - calculateDaysSpentInLast180Days(dateRanges, rejoinDate);
+  const lastExitDate = addDays(rejoinDate, daysLeft);
 
   if (daysLeft >= 0) {
-    return `You can still stay ${daysLeft} days in the Schengen area, until ${format(lastExitDate, 'PPP')}.`;
+    return `You can still stay ${daysLeft} days in the Schengen area, until ${format(
+      lastExitDate,
+      "PPP"
+    )}.`;
   } else {
     const overstay = -daysLeft;
     return `You are exceeding the limit by ${overstay} days in the Schengen area. Please adjust your travel dates.`;
   }
 };
 
-export const schengenStatusMessage = (
-  rejoinDate: string,
-  dateRanges: DateRange[]
+export const calculateFutureStay = (
+  dateRanges: DateRange[],
+  rejoinDateStr: string
 ) => {
-  let rejoinDateObj = new Date(rejoinDate);
+  const rejoinDate = new Date(rejoinDateStr);
+  let futureAvailability = [];
 
-  // Check if rejoinDate is invalid or empty, and use today's date in that case
-  if (!isValid(rejoinDateObj) || !rejoinDate) {
-    rejoinDateObj = new Date();
+  for (let i = 0; i < 90; i++) {
+    const futureDate = addDays(rejoinDate, i);
+    const startOf180DayPeriod = subDays(futureDate, 179);
+    let daysSpent = 0;
+
+    for (const range of dateRanges) {
+      const entryDate = new Date(range.entry);
+      const exitDate = new Date(range.exit);
+
+      if (
+        isWithinInterval(entryDate, {
+          start: startOf180DayPeriod,
+          end: futureDate,
+        }) ||
+        isWithinInterval(exitDate, {
+          start: startOf180DayPeriod,
+          end: futureDate,
+        }) ||
+        (entryDate < startOf180DayPeriod && exitDate > futureDate)
+      ) {
+        const overlapStart = max([startOf180DayPeriod, entryDate]);
+        const overlapEnd = min([futureDate, exitDate]);
+        daysSpent += differenceInCalendarDays(overlapEnd, overlapStart) + 1;
+      }
+    }
+
+    const daysLeft = 90 - daysSpent;
+    if (daysLeft >= 0) {
+      futureAvailability.push({
+        date: format(futureDate, "PPP"),
+        daysLeft: daysLeft,
+      });
+    }
   }
 
-  const message = calculateSchengenStay(
+  return futureAvailability;
+};
+
+const formatDate = (date: Date) => format(date, "PPP");
+
+export type SchengenStatus = {
+  message: string;
+  futureStay: {
+    date: string;
+    daysLeft: number;
+  }[];
+};
+
+export const schengenStatus = (
+  rejoinDate: string,
+  dateRanges: DateRange[]
+): SchengenStatus => {
+  let rejoinDateObj = isValid(new Date(rejoinDate))
+    ? new Date(rejoinDate)
+    : new Date();
+
+  const futureStay = calculateFutureStay(
     dateRanges || [],
     rejoinDateObj.toISOString().split("T")[0]
   );
 
-  return `If you plan to re-join the Schengen area on ${format(
-    rejoinDateObj,
-    "PPP"
-  )}, ${message}`;
+  if (futureStay.length > 0) {
+    const rejoinDateInFutureStay = futureStay.some(
+      (day) => day.date === format(rejoinDateObj, "MMMM do, yyyy")
+    );
+
+    let amountOfDays = 0;
+
+    // If rejoin date is in future stay, find the maximum amount of days
+    if (rejoinDateInFutureStay) {
+      for (let i = 0; i < futureStay.length - 1; i++) {
+        const currentDay = futureStay[i];
+        const nextDay = futureStay[i + 1];
+
+        if (currentDay.daysLeft === 0) {
+          break;
+        }
+
+        if (currentDay.daysLeft < nextDay.daysLeft) {
+          continue;
+        } else {
+          amountOfDays = currentDay.daysLeft;
+          break;
+        }
+      }
+    }
+
+    return {
+      message: `If you re-join the Schengen area on ${formatDate(
+        rejoinDateObj
+      )}, you can initially stay for ${amountOfDays} days.`,
+      futureStay: futureStay,
+    };
+  } else {
+    return {
+      message: `As of ${formatDate(
+        rejoinDateObj
+      )}, you have already exceeded the 90-day limit in the Schengen area.`,
+      futureStay: [],
+    };
+  }
 };
