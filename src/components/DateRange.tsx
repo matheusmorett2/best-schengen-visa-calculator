@@ -1,7 +1,9 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { useLocalStorage } from "react-use";
 import { format } from "date-fns";
 import { SchengenStatus, schengenStatus } from "../utils/calculator";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faPlus, faTrashAlt } from "@fortawesome/free-solid-svg-icons";
 
 export type DateRange = {
   entry: string;
@@ -116,7 +118,10 @@ const DateRangeInput: React.FC = () => {
   return (
     <div>
       {dateRanges?.map((range, index) => (
-        <div key={index} className="flex items-center space-x-4 mb-4">
+        <div
+          key={index}
+          className="flex items-center space-x-2 md:space-x-4 mb-4"
+        >
           <button
             onClick={() => removeDateRange(index)}
             className={`bg-red-500 text-white p-2 rounded ${
@@ -124,7 +129,7 @@ const DateRangeInput: React.FC = () => {
             }`}
             disabled={index === 0}
           >
-            Delete
+            <FontAwesomeIcon icon={faTrashAlt} className="h-5 w-5" />
           </button>
           <div>
             <input
@@ -152,14 +157,16 @@ const DateRangeInput: React.FC = () => {
               }`}
             />
           </div>
-          <span className="ml-2">{calculateDays(range.entry, range.exit)}</span>
+          <span className="ml-2 hidden md:inline">
+            {calculateDays(range.entry, range.exit)}
+          </span>
         </div>
       ))}
       <button
         onClick={addDateRange}
         className="bg-blue-500 text-white p-2 rounded"
       >
-        Add row
+        <FontAwesomeIcon icon={faPlus} className="h-5 w-5" />
       </button>
       <div className="my-4">
         <label
@@ -193,7 +200,7 @@ const DateRangeInput: React.FC = () => {
             {calculationResult.message}
           </div>
           <div className="overflow-x-auto justify-start">
-            <div className="min-w-screen min-h-screen bg-gray-100 flex justify-center bg-gray-100 font-sans overflow-hidden">
+            <div className="min-w-screen pb-10 bg-gray-100 flex justify-center bg-gray-100 font-sans overflow-hidden">
               <div className="w-full lg:w-5/6">
                 <h1 className="text-5sm font-bold inline-block my-3 p-1">
                   This is how many days you can stay if you join on this day
